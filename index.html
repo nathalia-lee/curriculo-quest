@@ -325,7 +325,6 @@ function renderReview(card){
       <div class="btn-row" style="justify-content:center;margin-top:16px">
         <button class="btn btn-prev" onclick="prevStage()">◀ VOLTAR</button>
         <button class="btn btn-generate" onclick="generate()" id="btn-generate">🚀 GERAR CURRÍCULO!</button>
-        <button class="btn btn-download" id="btn-download" onclick="downloadPDF()">📥 BAIXAR PDF</button>
       </div>
     </div>
     <div id="sending-overlay" class="sending-overlay" style="display:none">
@@ -340,9 +339,6 @@ function nextStage(){
 function prevStage(){
   if(currentStage>0){currentStage--;renderStage();document.getElementById('stage-card').scrollIntoView({behavior:'smooth',block:'start'});}
 }
-
-let pdfBase64 = null;
-let pdfNome = 'curriculo.pdf';
 
 async function generate(){
   const overlay=document.getElementById('sending-overlay');
@@ -376,17 +372,25 @@ async function generate(){
       body: JSON.stringify(payload)
     });
     if(!res.ok) throw new Error('HTTP '+res.status);
-    const data = await res.json();
+
+    const blob = await res.blob();
     overlay.style.display='none';
-    if(data.pdf){
-      pdfBase64 = data.pdf;
-      pdfNome = data.nome || ((formData.pessoal||{}).nome||'curriculo').replace(/\s+/g,'-').toLowerCase()+'.pdf';
+
+    if(blob && blob.size > 0){
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const nome = ((formData.pessoal||{}).nome||'curriculo').replace(/\s+/g,'-').toLowerCase();
+      a.download = nome + '.pdf';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
       successMsg.style.display='block';
       addScore(100);
-      document.getElementById('btn-download').style.display='inline-flex';
-      downloadPDF();
+      showCoin(btn);
     } else {
-      throw new Error('PDF não recebido');
+      throw new Error('PDF vazio');
     }
   }catch(e){
     overlay.style.display='none';
@@ -394,19 +398,6 @@ async function generate(){
     errorMsg.style.display='block';
     console.error('Erro webhook:',e);
   }
-}
-
-function downloadPDF(){
-  if(!pdfBase64) return;
-  const byteChars = atob(pdfBase64);
-  const byteNums = new Array(byteChars.length);
-  for(let i=0;i<byteChars.length;i++) byteNums[i]=byteChars.charCodeAt(i);
-  const blob = new Blob([new Uint8Array(byteNums)],{type:'application/pdf'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href=url; a.download=pdfNome; a.click();
-  URL.revokeObjectURL(url);
-  showCoin(document.getElementById('btn-download'));
 }
 
 renderStage();
