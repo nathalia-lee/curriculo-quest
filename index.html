@@ -123,8 +123,7 @@ body{font-family:'Nunito',sans-serif;background:var(--sky);min-height:100vh;over
 </div>
 
 <script>
-// ⚠️ TROQUE PELA URL DO SEU WEBHOOK NO N8N
-const WEBHOOK_URL = 'https://tarot-manifesto-aged.ngrok-free.dev/webhook/gerar-curriculo';;
+const WEBHOOK_URL = 'https://tarot-manifesto-aged.ngrok-free.dev/webhook/gerar-curriculo';
 
 const stages = [
   {id:'pessoal',icon:'👤',label:'1-1',title:'DADOS PESSOAIS',desc:'Vamos começar com quem é você, herói!',
@@ -342,7 +341,6 @@ function prevStage(){
   if(currentStage>0){currentStage--;renderStage();document.getElementById('stage-card').scrollIntoView({behavior:'smooth',block:'start'});}
 }
 
-// Armazena o PDF recebido para download
 let pdfBase64 = null;
 let pdfNome = 'curriculo.pdf';
 
@@ -371,21 +369,20 @@ async function generate(){
   try{
     const res = await fetch(WEBHOOK_URL, {
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true'
+      },
       body: JSON.stringify(payload)
     });
     if(!res.ok) throw new Error('HTTP '+res.status);
-
-    // O n8n deve responder com JSON: { "pdf": "<base64>", "nome": "curriculo-joao.pdf" }
     const data = await res.json();
     overlay.style.display='none';
-
     if(data.pdf){
       pdfBase64 = data.pdf;
       pdfNome = data.nome || ((formData.pessoal||{}).nome||'curriculo').replace(/\s+/g,'-').toLowerCase()+'.pdf';
       successMsg.style.display='block';
       addScore(100);
-      // Mostra botão de download e faz download automático
       document.getElementById('btn-download').style.display='inline-flex';
       downloadPDF();
     } else {
@@ -401,7 +398,6 @@ async function generate(){
 
 function downloadPDF(){
   if(!pdfBase64) return;
-  // Converte base64 para blob e faz download
   const byteChars = atob(pdfBase64);
   const byteNums = new Array(byteChars.length);
   for(let i=0;i<byteChars.length;i++) byteNums[i]=byteChars.charCodeAt(i);
